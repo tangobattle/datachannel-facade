@@ -582,7 +582,7 @@ impl Drop for PeerConnection {
         // teardown itself are lost, which is fine: they're teardown noise.
         PEER_CONNECTION_USERDATA.lock().unwrap().remove(&self.id);
         unsafe {
-            assert_eq!(libdatachannel_sys::rtcDeletePeerConnection(self.id), 0);
+            libdatachannel_sys::rtcDeletePeerConnection(self.id);
         }
     }
 }
@@ -748,7 +748,7 @@ impl Drop for DataChannel {
         // entry before the delete so no trampoline can reach freed closures.
         DATA_CHANNEL_USERDATA.lock().unwrap().remove(&self.id);
         unsafe {
-            assert_eq!(libdatachannel_sys::rtcDeleteDataChannel(self.id), 0);
+            libdatachannel_sys::rtcDeleteDataChannel(self.id);
         }
     }
 }
