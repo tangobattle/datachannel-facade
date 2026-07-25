@@ -1,0 +1,17 @@
+[package]
+name = "datachannel-facade"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "One WebRTC data-channel API over libdatachannel natively and the browser on wasm."
+repository = "https://github.com/tangobattle/datachannel-facade"
+publish = false
+
+[dependencies]
+log = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+libdatachannel = { git = "https://github.com/tangobattle/libdatachannel-rs", features = ["vendored"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-datachannel = { path = "../web-datachannel" }
