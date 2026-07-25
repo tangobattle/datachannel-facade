@@ -7,6 +7,9 @@ description = "One WebRTC data-channel API over libdatachannel natively and the 
 repository = "https://github.com/tangobattle/datachannel-facade"
 publish = false
 
+[lints.clippy]
+new_without_default = "allow"
+
 [dependencies]
 log = "0.4"
 

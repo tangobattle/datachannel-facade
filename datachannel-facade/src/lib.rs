@@ -63,6 +63,19 @@ pub struct Configuration {
     pub(crate) sys: sys::ConfigExtras,
 }
 
+impl Configuration {
+    /// An empty configuration.
+    ///
+    /// Set the public fields on the result, and reach native-only options
+    /// through [`platform::native::ConfigurationExt`]. A constructor
+    /// rather than `..Default::default()` because the backend extras
+    /// field is private, which makes functional-record-update
+    /// unavailable to other crates.
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 /// A WebRTC peer connection.
 pub struct PeerConnection {
     inner: sys::PeerConnection,

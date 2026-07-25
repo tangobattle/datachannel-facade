@@ -615,11 +615,7 @@ fn state_from_web(state: web_sys::RtcPeerConnectionState) -> State {
 /// Report a rejected Promise. There is nowhere to return it to, so it is
 /// logged and the connection is driven to [`State::Failed`] — which is
 /// what a failed description or candidate exchange amounts to.
-fn fail(
-    on_state_change: &Shared<dyn Fn(State)>,
-    what: &str,
-    e: wasm_bindgen::JsValue,
-) {
+fn fail(on_state_change: &Shared<dyn Fn(State)>, what: &str, e: wasm_bindgen::JsValue) {
     log::error!("{what} failed: {}", Error::from(e));
     if let Some(cb) = on_state_change.borrow().as_ref() {
         cb(State::Failed);
