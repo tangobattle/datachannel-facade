@@ -1,8 +1,8 @@
 //! The wasm backend: [`web_datachannel`].
 
 pub use web_datachannel::{
-    DataChannel, DataChannelOptions, Description, Error, GatheringState, PeerConnection,
-    Reliability, SdpType, State, TransportPolicy,
+    DataChannel, DataChannelOptions, Description, Error, GatheringState, PeerConnection, Reliability, SdpType, State,
+    TransportPolicy,
 };
 
 /// Nothing. Every native-only option is native-only because no browser

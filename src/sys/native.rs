@@ -1,8 +1,8 @@
 //! The native backend: [`libdatachannel`].
 
 pub use libdatachannel::{
-    DataChannel, DataChannelOptions, Description, Error, GatheringState, PeerConnection,
-    Reliability, SdpType, State, TransportPolicy,
+    DataChannel, DataChannelOptions, Description, Error, GatheringState, PeerConnection, Reliability, SdpType, State,
+    TransportPolicy,
 };
 
 /// Native-only configuration, carried on [`crate::Configuration`] and

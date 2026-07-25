@@ -376,7 +376,9 @@ impl PeerConnection {
 
         unsafe {
             extern "C" fn data_channel_callback(pc_id: i32, id: i32, _userdata: *mut std::ffi::c_void) {
-                let Some(ud) = peer_connection_userdata(pc_id) else { return };
+                let Some(ud) = peer_connection_userdata(pc_id) else {
+                    return;
+                };
                 let ud = ud.read().unwrap();
                 if let Some(cb) = &ud.on_data_channel {
                     cb(DataChannel::from_raw(id))

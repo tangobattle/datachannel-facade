@@ -177,17 +177,12 @@ type Handler<T> = wasm_bindgen::closure::Closure<dyn FnMut(T)>;
 /// Handlers with nothing useful in the event argument.
 type PlainHandler = Handler<wasm_bindgen::JsValue>;
 
-fn handler<T: wasm_bindgen::convert::FromWasmAbi + 'static>(
-    f: impl FnMut(T) + 'static,
-) -> Handler<T> {
+fn handler<T: wasm_bindgen::convert::FromWasmAbi + 'static>(f: impl FnMut(T) + 'static) -> Handler<T> {
     wasm_bindgen::closure::Closure::wrap(Box::new(f) as Box<dyn FnMut(T)>)
 }
 
 /// Attach `h` by handing its JS function to `set`, then keep it.
-fn attach<T>(
-    set: impl FnOnce(Option<&js_sys::Function>),
-    h: Option<Handler<T>>,
-) -> Option<Handler<T>> {
+fn attach<T>(set: impl FnOnce(Option<&js_sys::Function>), h: Option<Handler<T>>) -> Option<Handler<T>> {
     set(h.as_ref().map(|h| h.as_ref().unchecked_ref()));
     h
 }
@@ -230,11 +225,7 @@ impl PeerConnection {
                 set(&obj, "username", &wasm_bindgen::JsValue::from_str(username));
             }
             if let Some(credential) = &server.credential {
-                set(
-                    &obj,
-                    "credential",
-                    &wasm_bindgen::JsValue::from_str(credential),
-                );
+                set(&obj, "credential", &wasm_bindgen::JsValue::from_str(credential));
             }
             servers.push(&obj);
         }
@@ -275,34 +266,29 @@ impl PeerConnection {
         wasm_bindgen_futures::spawn_local(async move {
             let type_ = type_.unwrap_or_else(|| match pc.signaling_state() {
                 // Mid-negotiation with their offer in hand: we answer.
-                web_sys::RtcSignalingState::HaveRemoteOffer
-                | web_sys::RtcSignalingState::HaveLocalPranswer => SdpType::Answer,
+                web_sys::RtcSignalingState::HaveRemoteOffer | web_sys::RtcSignalingState::HaveLocalPranswer => {
+                    SdpType::Answer
+                }
                 _ => SdpType::Offer,
             });
 
             let init = match type_ {
                 // Rollback discards the pending local description; there
                 // is nothing to create.
-                SdpType::Rollback => {
-                    web_sys::RtcSessionDescriptionInit::new(web_sys::RtcSdpType::Rollback)
-                }
+                SdpType::Rollback => web_sys::RtcSessionDescriptionInit::new(web_sys::RtcSdpType::Rollback),
                 SdpType::Answer | SdpType::Pranswer => {
                     match wasm_bindgen_futures::JsFuture::from(pc.create_answer()).await {
                         Ok(v) => v.unchecked_into(),
                         Err(e) => return fail(&on_state_change, "createAnswer", e),
                     }
                 }
-                SdpType::Offer => {
-                    match wasm_bindgen_futures::JsFuture::from(pc.create_offer()).await {
-                        Ok(v) => v.unchecked_into(),
-                        Err(e) => return fail(&on_state_change, "createOffer", e),
-                    }
-                }
+                SdpType::Offer => match wasm_bindgen_futures::JsFuture::from(pc.create_offer()).await {
+                    Ok(v) => v.unchecked_into(),
+                    Err(e) => return fail(&on_state_change, "createOffer", e),
+                },
             };
 
-            if let Err(e) =
-                wasm_bindgen_futures::JsFuture::from(pc.set_local_description(&init)).await
-            {
+            if let Err(e) = wasm_bindgen_futures::JsFuture::from(pc.set_local_description(&init)).await {
                 return fail(&on_state_change, "setLocalDescription", e);
             }
 
@@ -329,9 +315,7 @@ impl PeerConnection {
         let init = web_sys::RtcSessionDescriptionInit::new(desc.type_.to_web());
         init.set_sdp(&desc.sdp);
         wasm_bindgen_futures::spawn_local(async move {
-            if let Err(e) =
-                wasm_bindgen_futures::JsFuture::from(pc.set_remote_description(&init)).await
-            {
+            if let Err(e) = wasm_bindgen_futures::JsFuture::from(pc.set_remote_description(&init)).await {
                 fail(&on_state_change, "setRemoteDescription", e);
             }
         });
@@ -366,11 +350,7 @@ impl PeerConnection {
         description(self.pc.remote_description())
     }
 
-    pub fn create_data_channel(
-        &self,
-        label: &str,
-        options: DataChannelOptions,
-    ) -> Result<DataChannel, Error> {
+    pub fn create_data_channel(&self, label: &str, options: DataChannelOptions) -> Result<DataChannel, Error> {
         let init = web_sys::RtcDataChannelInit::new();
         init.set_ordered(!options.reliability.unordered);
         // The browser accepts at most one of these, and only for an
@@ -392,17 +372,12 @@ impl PeerConnection {
             init.set_id(stream);
         }
         Ok(DataChannel::wrap(
-            self.pc
-                .create_data_channel_with_data_channel_dict(label, &init),
+            self.pc.create_data_channel_with_data_channel_dict(label, &init),
         ))
     }
 
-    pub fn set_on_local_description(
-        &mut self,
-        cb: Option<impl Fn(&str, SdpType) + Send + Sync + 'static>,
-    ) {
-        *self.on_local_description.borrow_mut() =
-            cb.map(|cb| Box::new(cb) as Box<dyn Fn(&str, SdpType)>);
+    pub fn set_on_local_description(&mut self, cb: Option<impl Fn(&str, SdpType) + Send + Sync + 'static>) {
+        *self.on_local_description.borrow_mut() = cb.map(|cb| Box::new(cb) as Box<dyn Fn(&str, SdpType)>);
     }
 
     pub fn set_on_local_candidate(&mut self, cb: Option<impl Fn(&str) + Send + Sync + 'static>) {
@@ -423,23 +398,17 @@ impl PeerConnection {
         // a rejected Promise reports a failure through the same callback
         // (see `fail`).
         let shared = cb.map(|cb| std::rc::Rc::new(cb));
-        *self.on_state_change.borrow_mut() = shared
-            .clone()
-            .map(|cb| Box::new(move |s| cb(s)) as Box<dyn Fn(State)>);
+        *self.on_state_change.borrow_mut() = shared.clone().map(|cb| Box::new(move |s| cb(s)) as Box<dyn Fn(State)>);
 
         let h = shared.map(|cb| {
             let pc = self.pc.clone();
             handler(move |_: wasm_bindgen::JsValue| cb(state_from_web(pc.connection_state())))
         });
         let pc = self.pc.clone();
-        self.callbacks.borrow_mut().on_state_change =
-            attach(|f| pc.set_onconnectionstatechange(f), h);
+        self.callbacks.borrow_mut().on_state_change = attach(|f| pc.set_onconnectionstatechange(f), h);
     }
 
-    pub fn set_on_gathering_state_change(
-        &mut self,
-        cb: Option<impl Fn(GatheringState) + Send + Sync + 'static>,
-    ) {
+    pub fn set_on_gathering_state_change(&mut self, cb: Option<impl Fn(GatheringState) + Send + Sync + 'static>) {
         let h = cb.map(|cb| {
             let pc = self.pc.clone();
             handler(move |_: wasm_bindgen::JsValue| {
@@ -451,17 +420,11 @@ impl PeerConnection {
             })
         });
         let pc = self.pc.clone();
-        self.callbacks.borrow_mut().on_gathering_state_change =
-            attach(|f| pc.set_onicegatheringstatechange(f), h);
+        self.callbacks.borrow_mut().on_gathering_state_change = attach(|f| pc.set_onicegatheringstatechange(f), h);
     }
 
-    pub fn set_on_data_channel(
-        &mut self,
-        cb: Option<impl Fn(DataChannel) + Send + Sync + 'static>,
-    ) {
-        let h = cb.map(|cb| {
-            handler(move |ev: web_sys::RtcDataChannelEvent| cb(DataChannel::wrap(ev.channel())))
-        });
+    pub fn set_on_data_channel(&mut self, cb: Option<impl Fn(DataChannel) + Send + Sync + 'static>) {
+        let h = cb.map(|cb| handler(move |ev: web_sys::RtcDataChannelEvent| cb(DataChannel::wrap(ev.channel()))));
         let pc = self.pc.clone();
         self.callbacks.borrow_mut().on_data_channel = attach(|f| pc.set_ondatachannel(f), h);
     }
@@ -575,8 +538,7 @@ impl DataChannel {
     pub fn set_on_buffered_amount_low(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
         let h = cb.map(|cb| handler(move |_: wasm_bindgen::JsValue| cb()));
         let dc = self.dc.clone();
-        self.callbacks.borrow_mut().on_buffered_amount_low =
-            attach(|f| dc.set_onbufferedamountlow(f), h);
+        self.callbacks.borrow_mut().on_buffered_amount_low = attach(|f| dc.set_onbufferedamountlow(f), h);
     }
 }
 
@@ -592,12 +554,8 @@ fn set(obj: &js_sys::Object, key: &str, value: &wasm_bindgen::JsValue) {
 
 fn description(desc: Option<web_sys::RtcSessionDescription>) -> Result<Description, Error> {
     let desc = desc.ok_or_else(|| Error("no description".to_owned()))?;
-    let type_ =
-        SdpType::from_web(desc.type_()).ok_or_else(|| Error("unknown sdp type".to_owned()))?;
-    Ok(Description {
-        type_,
-        sdp: desc.sdp(),
-    })
+    let type_ = SdpType::from_web(desc.type_()).ok_or_else(|| Error("unknown sdp type".to_owned()))?;
+    Ok(Description { type_, sdp: desc.sdp() })
 }
 
 fn state_from_web(state: web_sys::RtcPeerConnectionState) -> State {

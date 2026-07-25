@@ -36,10 +36,7 @@ mod ice;
 pub mod platform;
 mod sys;
 
-pub use sys::{
-    DataChannelOptions, Description, Error, GatheringState, Reliability, SdpType, State,
-    TransportPolicy,
-};
+pub use sys::{DataChannelOptions, Description, Error, GatheringState, Reliability, SdpType, State, TransportPolicy};
 
 /// Peer connection configuration — the part both backends honour.
 ///
@@ -125,20 +122,13 @@ impl PeerConnection {
         self.inner.remote_description()
     }
 
-    pub fn create_data_channel(
-        &self,
-        label: &str,
-        options: DataChannelOptions,
-    ) -> Result<DataChannel, Error> {
+    pub fn create_data_channel(&self, label: &str, options: DataChannelOptions) -> Result<DataChannel, Error> {
         Ok(DataChannel {
             inner: self.inner.create_data_channel(label, options)?,
         })
     }
 
-    pub fn set_on_local_description(
-        &mut self,
-        cb: Option<impl Fn(&str, SdpType) + Send + Sync + 'static>,
-    ) {
+    pub fn set_on_local_description(&mut self, cb: Option<impl Fn(&str, SdpType) + Send + Sync + 'static>) {
         self.inner.set_on_local_description(cb);
     }
 
@@ -152,17 +142,11 @@ impl PeerConnection {
         self.inner.set_on_state_change(cb);
     }
 
-    pub fn set_on_gathering_state_change(
-        &mut self,
-        cb: Option<impl Fn(GatheringState) + Send + Sync + 'static>,
-    ) {
+    pub fn set_on_gathering_state_change(&mut self, cb: Option<impl Fn(GatheringState) + Send + Sync + 'static>) {
         self.inner.set_on_gathering_state_change(cb);
     }
 
-    pub fn set_on_data_channel(
-        &mut self,
-        cb: Option<impl Fn(DataChannel) + Send + Sync + 'static>,
-    ) {
+    pub fn set_on_data_channel(&mut self, cb: Option<impl Fn(DataChannel) + Send + Sync + 'static>) {
         self.inner
             .set_on_data_channel(cb.map(|cb| move |inner| cb(DataChannel { inner })));
     }

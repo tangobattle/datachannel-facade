@@ -16,12 +16,7 @@ pub trait ConfigurationExt {
     /// A fixed range is how a peer can be reached without signaling:
     /// the other side already knows where to look. `(port, port)` pins a
     /// single port.
-    fn set_bind(
-        &mut self,
-        addr: Option<std::net::IpAddr>,
-        port_range_begin: u16,
-        port_range_end: u16,
-    );
+    fn set_bind(&mut self, addr: Option<std::net::IpAddr>, port_range_begin: u16, port_range_end: u16);
 
     /// Multiplex connections onto one UDP port.
     fn set_enable_ice_udp_mux(&mut self, value: bool);
@@ -49,12 +44,7 @@ pub trait ConfigurationExt {
 }
 
 impl ConfigurationExt for crate::Configuration {
-    fn set_bind(
-        &mut self,
-        addr: Option<std::net::IpAddr>,
-        port_range_begin: u16,
-        port_range_end: u16,
-    ) {
+    fn set_bind(&mut self, addr: Option<std::net::IpAddr>, port_range_begin: u16, port_range_end: u16) {
         self.sys.bind_address = addr;
         self.sys.port_range_begin = port_range_begin;
         self.sys.port_range_end = port_range_end;

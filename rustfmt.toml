@@ -1,0 +1,4 @@
+# The moved-in `libdatachannel` was written under tango's 120 columns, and
+# so was everything else in this family. Without this, `cargo fmt --all`
+# rewraps that whole crate to rustfmt's 100-col default on every run.
+max_width = 120
