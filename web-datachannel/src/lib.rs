@@ -27,14 +27,24 @@
 //! and the connection is driven to [`State::Failed`] — which is what a
 //! failed description exchange means regardless.
 //!
-//! # `Send` and `Sync`
+//! # Thread affinity
 //!
-//! libdatachannel fires callbacks from its own network threads, so its
-//! signatures demand `Fn + Send + Sync`. JS values are neither, and wasm
-//! is single-threaded. The bounds are kept anyway — a caller writing to
-//! both targets has to satisfy the stricter one, and asserting them here
-//! is sound precisely because there is no second thread to violate them
-//! from.
+//! This is the one place the two shapes genuinely differ, and it is not
+//! papered over. An `RtcPeerConnection`, its event handlers and the
+//! `Rc`/`RefCell` cells sharing them all belong to the thread that made
+//! them, so [`PeerConnection`] and [`DataChannel`] are neither `Send`
+//! nor `Sync`, and callbacks are taken as plain `Fn + 'static`.
+//!
+//! libdatachannel fires from its own network threads and so demands
+//! `Fn + Send + Sync`. Asserting that here with `unsafe impl` would be
+//! wrong rather than merely strict: "wasm has one thread" is a property
+//! of one build configuration, not of the target — `-Ctarget-feature=
+//! +atomics` gives wasm real threads, and a `Send` JS handle or a raced
+//! `Rc` refcount is undefined behaviour the moment one exists.
+//!
+//! `datachannel-facade` reconciles the two with a marker bound that
+//! means `Send + Sync` off wasm and nothing here, so cross-platform
+//! callers still write the bound once.
 
 use wasm_bindgen::JsCast as _;
 
@@ -206,10 +216,6 @@ pub struct PeerConnection {
     on_local_description: Shared<dyn Fn(&str, SdpType)>,
 }
 
-// Sound because wasm is single-threaded; see the module docs.
-unsafe impl Send for PeerConnection {}
-unsafe impl Sync for PeerConnection {}
-
 impl PeerConnection {
     pub fn new(config: Configuration) -> Result<Self, Error> {
         let raw = web_sys::RtcConfiguration::new();
@@ -376,11 +382,11 @@ impl PeerConnection {
         ))
     }
 
-    pub fn set_on_local_description(&mut self, cb: Option<impl Fn(&str, SdpType) + Send + Sync + 'static>) {
+    pub fn set_on_local_description(&mut self, cb: Option<impl Fn(&str, SdpType) + 'static>) {
         *self.on_local_description.borrow_mut() = cb.map(|cb| Box::new(cb) as Box<dyn Fn(&str, SdpType)>);
     }
 
-    pub fn set_on_local_candidate(&mut self, cb: Option<impl Fn(&str) + Send + Sync + 'static>) {
+    pub fn set_on_local_candidate(&mut self, cb: Option<impl Fn(&str) + 'static>) {
         let h = cb.map(|cb| {
             handler(move |ev: web_sys::RtcPeerConnectionIceEvent| {
                 // A null candidate is the browser's end-of-gathering
@@ -393,7 +399,7 @@ impl PeerConnection {
         self.callbacks.borrow_mut().on_ice_candidate = attach(|f| pc.set_onicecandidate(f), h);
     }
 
-    pub fn set_on_state_change(&mut self, cb: Option<impl Fn(State) + Send + Sync + 'static>) {
+    pub fn set_on_state_change(&mut self, cb: Option<impl Fn(State) + 'static>) {
         // Held twice: the browser's own event reads the live state, and
         // a rejected Promise reports a failure through the same callback
         // (see `fail`).
@@ -408,7 +414,7 @@ impl PeerConnection {
         self.callbacks.borrow_mut().on_state_change = attach(|f| pc.set_onconnectionstatechange(f), h);
     }
 
-    pub fn set_on_gathering_state_change(&mut self, cb: Option<impl Fn(GatheringState) + Send + Sync + 'static>) {
+    pub fn set_on_gathering_state_change(&mut self, cb: Option<impl Fn(GatheringState) + 'static>) {
         let h = cb.map(|cb| {
             let pc = self.pc.clone();
             handler(move |_: wasm_bindgen::JsValue| {
@@ -423,7 +429,7 @@ impl PeerConnection {
         self.callbacks.borrow_mut().on_gathering_state_change = attach(|f| pc.set_onicegatheringstatechange(f), h);
     }
 
-    pub fn set_on_data_channel(&mut self, cb: Option<impl Fn(DataChannel) + Send + Sync + 'static>) {
+    pub fn set_on_data_channel(&mut self, cb: Option<impl Fn(DataChannel) + 'static>) {
         let h = cb.map(|cb| handler(move |ev: web_sys::RtcDataChannelEvent| cb(DataChannel::wrap(ev.channel()))));
         let pc = self.pc.clone();
         self.callbacks.borrow_mut().on_data_channel = attach(|f| pc.set_ondatachannel(f), h);
@@ -449,10 +455,6 @@ pub struct DataChannel {
     dc: web_sys::RtcDataChannel,
     callbacks: std::rc::Rc<std::cell::RefCell<ChannelCallbacks>>,
 }
-
-// Sound because wasm is single-threaded; see the module docs.
-unsafe impl Send for DataChannel {}
-unsafe impl Sync for DataChannel {}
 
 impl DataChannel {
     fn wrap(dc: web_sys::RtcDataChannel) -> Self {
@@ -493,19 +495,19 @@ impl DataChannel {
         Ok(())
     }
 
-    pub fn set_on_open(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
+    pub fn set_on_open(&mut self, cb: Option<impl Fn() + 'static>) {
         let h = cb.map(|cb| handler(move |_: wasm_bindgen::JsValue| cb()));
         let dc = self.dc.clone();
         self.callbacks.borrow_mut().on_open = attach(|f| dc.set_onopen(f), h);
     }
 
-    pub fn set_on_closed(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
+    pub fn set_on_closed(&mut self, cb: Option<impl Fn() + 'static>) {
         let h = cb.map(|cb| handler(move |_: wasm_bindgen::JsValue| cb()));
         let dc = self.dc.clone();
         self.callbacks.borrow_mut().on_closed = attach(|f| dc.set_onclose(f), h);
     }
 
-    pub fn set_on_error(&mut self, cb: Option<impl Fn(&str) + Send + Sync + 'static>) {
+    pub fn set_on_error(&mut self, cb: Option<impl Fn(&str) + 'static>) {
         let h = cb.map(|cb| {
             handler(move |ev: web_sys::Event| {
                 let msg = ev
@@ -519,7 +521,7 @@ impl DataChannel {
         self.callbacks.borrow_mut().on_error = attach(|f| dc.set_onerror(f), h);
     }
 
-    pub fn set_on_message(&mut self, cb: Option<impl Fn(&[u8]) + Send + Sync + 'static>) {
+    pub fn set_on_message(&mut self, cb: Option<impl Fn(&[u8]) + 'static>) {
         let h = cb.map(|cb| {
             handler(move |ev: web_sys::MessageEvent| {
                 // `binaryType` is pinned to arraybuffer in `wrap`, so
@@ -535,7 +537,7 @@ impl DataChannel {
         self.callbacks.borrow_mut().on_message = attach(|f| dc.set_onmessage(f), h);
     }
 
-    pub fn set_on_buffered_amount_low(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
+    pub fn set_on_buffered_amount_low(&mut self, cb: Option<impl Fn() + 'static>) {
         let h = cb.map(|cb| handler(move |_: wasm_bindgen::JsValue| cb()));
         let dc = self.dc.clone();
         self.callbacks.borrow_mut().on_buffered_amount_low = attach(|f| dc.set_onbufferedamountlow(f), h);

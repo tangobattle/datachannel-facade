@@ -31,10 +31,21 @@
 //! skipping DTLS fingerprint verification, and fixing a UDP port range
 //! have no web equivalent and are not going to get one; a transport
 //! built on them is a native transport.
+//!
+//! Thread-safety is on that list too. A libdatachannel connection is
+//! `Send + Sync` and fires from its own threads; a browser one is
+//! thread-affine and is neither. Rather than assert the native shape
+//! onto JS values, callbacks are bounded with [`marker::WasmNotSend`] /
+//! [`marker::WasmNotSync`] — `Send + Sync` off wasm, nothing on it — so
+//! the bound is written once and holding a connection across threads is
+//! native-only in the same honest way.
 
 mod ice;
+pub mod marker;
 pub mod platform;
 mod sys;
+
+use marker::{WasmNotSend, WasmNotSync};
 
 pub use sys::{DataChannelOptions, Description, Error, GatheringState, Reliability, SdpType, State, TransportPolicy};
 
@@ -128,25 +139,31 @@ impl PeerConnection {
         })
     }
 
-    pub fn set_on_local_description(&mut self, cb: Option<impl Fn(&str, SdpType) + Send + Sync + 'static>) {
+    pub fn set_on_local_description(
+        &mut self,
+        cb: Option<impl Fn(&str, SdpType) + WasmNotSend + WasmNotSync + 'static>,
+    ) {
         self.inner.set_on_local_description(cb);
     }
 
     /// Called with each gathered local candidate, and with an empty
     /// string once gathering is done.
-    pub fn set_on_local_candidate(&mut self, cb: Option<impl Fn(&str) + Send + Sync + 'static>) {
+    pub fn set_on_local_candidate(&mut self, cb: Option<impl Fn(&str) + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_local_candidate(cb);
     }
 
-    pub fn set_on_state_change(&mut self, cb: Option<impl Fn(State) + Send + Sync + 'static>) {
+    pub fn set_on_state_change(&mut self, cb: Option<impl Fn(State) + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_state_change(cb);
     }
 
-    pub fn set_on_gathering_state_change(&mut self, cb: Option<impl Fn(GatheringState) + Send + Sync + 'static>) {
+    pub fn set_on_gathering_state_change(
+        &mut self,
+        cb: Option<impl Fn(GatheringState) + WasmNotSend + WasmNotSync + 'static>,
+    ) {
         self.inner.set_on_gathering_state_change(cb);
     }
 
-    pub fn set_on_data_channel(&mut self, cb: Option<impl Fn(DataChannel) + Send + Sync + 'static>) {
+    pub fn set_on_data_channel(&mut self, cb: Option<impl Fn(DataChannel) + WasmNotSend + WasmNotSync + 'static>) {
         self.inner
             .set_on_data_channel(cb.map(|cb| move |inner| cb(DataChannel { inner })));
     }
@@ -191,23 +208,23 @@ impl DataChannel {
         self.inner.set_buffered_amount_low_threshold(amount)
     }
 
-    pub fn set_on_open(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
+    pub fn set_on_open(&mut self, cb: Option<impl Fn() + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_open(cb);
     }
 
-    pub fn set_on_closed(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
+    pub fn set_on_closed(&mut self, cb: Option<impl Fn() + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_closed(cb);
     }
 
-    pub fn set_on_error(&mut self, cb: Option<impl Fn(&str) + Send + Sync + 'static>) {
+    pub fn set_on_error(&mut self, cb: Option<impl Fn(&str) + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_error(cb);
     }
 
-    pub fn set_on_message(&mut self, cb: Option<impl Fn(&[u8]) + Send + Sync + 'static>) {
+    pub fn set_on_message(&mut self, cb: Option<impl Fn(&[u8]) + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_message(cb);
     }
 
-    pub fn set_on_buffered_amount_low(&mut self, cb: Option<impl Fn() + Send + Sync + 'static>) {
+    pub fn set_on_buffered_amount_low(&mut self, cb: Option<impl Fn() + WasmNotSend + WasmNotSync + 'static>) {
         self.inner.set_on_buffered_amount_low(cb);
     }
 }
