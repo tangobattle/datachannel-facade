@@ -1,3 +1,27 @@
+# The facade is the root package; its two backends are workspace members
+# beside it. `libdatachannel-sys` has to be listed explicitly because it
+# sits under `libdatachannel/` rather than at the top level.
 [workspace]
 resolver = "2"
-members = ["datachannel-facade", "libdatachannel", "libdatachannel/libdatachannel-sys", "web-datachannel"]
+members = ["libdatachannel", "libdatachannel/libdatachannel-sys", "web-datachannel"]
+
+[package]
+name = "datachannel-facade"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "One WebRTC data-channel API over libdatachannel natively and the browser on wasm."
+repository = "https://github.com/tangobattle/datachannel-facade"
+publish = false
+
+[lints.clippy]
+new_without_default = "allow"
+
+[dependencies]
+log = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+libdatachannel = { path = "libdatachannel", features = ["vendored"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-datachannel = { path = "web-datachannel" }

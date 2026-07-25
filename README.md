@@ -3,11 +3,12 @@
 One WebRTC data-channel API over libdatachannel natively and the browser
 on wasm.
 
-Three crates:
+`datachannel-facade` is the root crate — the API. It switches backend on
+`target_arch`, and carries the native-only options in a separate
+`platform::native` module rather than pretending they work everywhere.
 
-* **`datachannel-facade`** — the API. Switches backend on
-  `target_arch`, and carries the native-only options in a separate
-  `platform::native` module rather than pretending they work everywhere.
+Its two backends are workspace members beside it:
+
 * **`libdatachannel`** — the native backend: Rust bindings to
   [libdatachannel], with `libdatachannel-sys` under it vendoring the C++
   library as a submodule. Clone with `--recursive`.
