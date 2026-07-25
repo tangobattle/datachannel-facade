@@ -1,0 +1,5 @@
+# Git only reads .gitmodules at the repository root, so this has to live
+# here rather than beside the crate that vendors it.
+[submodule "libdatachannel/libdatachannel-sys/libdatachannel"]
+	path = libdatachannel/libdatachannel-sys/libdatachannel
+	url = https://github.com/paullouisageneau/libdatachannel

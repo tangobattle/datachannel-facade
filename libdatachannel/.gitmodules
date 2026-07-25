@@ -1,3 +1,0 @@
-[submodule "libdatachannel-sys/libdatachannel"]
-	path = libdatachannel-sys/libdatachannel
-	url = https://github.com/paullouisageneau/libdatachannel

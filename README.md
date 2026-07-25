@@ -1,18 +1,25 @@
 # datachannel-facade
 
-One WebRTC data-channel API over [libdatachannel] natively and the
-browser on wasm.
+One WebRTC data-channel API over libdatachannel natively and the browser
+on wasm.
 
-[libdatachannel]: https://github.com/tangobattle/libdatachannel-rs
-
-Two crates:
+Three crates:
 
 * **`datachannel-facade`** — the API. Switches backend on
   `target_arch`, and carries the native-only options in a separate
   `platform::native` module rather than pretending they work everywhere.
+* **`libdatachannel`** — the native backend: Rust bindings to
+  [libdatachannel], with `libdatachannel-sys` under it vendoring the C++
+  library as a submodule. Clone with `--recursive`.
 * **`web-datachannel`** — the wasm backend: browser WebRTC, deliberately
   shaped like libdatachannel's Rust API. Usable on its own, but it exists
   to make the facade's switch thin.
+
+Both backends live here so the facade's two halves version together: a
+change to the shape they share is one commit, not a bump chain across
+three repos.
+
+[libdatachannel]: https://github.com/paullouisageneau/libdatachannel
 
 ## The trick that makes it thin
 
