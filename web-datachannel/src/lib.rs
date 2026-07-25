@@ -330,6 +330,13 @@ impl PeerConnection {
 
     /// Add a remote ICE candidate. An empty string means end-of-
     /// candidates, which the browser spells as a null candidate.
+    ///
+    /// The browser refuses a candidate that names no media section —
+    /// `RTCIceCandidate` throws when both `sdpMid` and `sdpMLineIndex`
+    /// are null — while libdatachannel's candidate strings carry the mid
+    /// alongside, out of band, and this API doesn't. Everything here is a
+    /// bundled data-channel connection, which has exactly one media
+    /// section, so that section is index 0.
     pub fn add_remote_candidate(&self, cand: &str) -> Result<(), Error> {
         let pc = self.pc.clone();
         let on_state_change = self.on_state_change.clone();
@@ -337,6 +344,7 @@ impl PeerConnection {
             None
         } else {
             let init = web_sys::RtcIceCandidateInit::new(cand);
+            init.set_sdp_m_line_index(Some(0));
             Some(web_sys::RtcIceCandidate::new(&init)?)
         };
         wasm_bindgen_futures::spawn_local(async move {
