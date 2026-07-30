@@ -3,3 +3,7 @@
 [submodule "libdatachannel/libdatachannel-sys/libdatachannel"]
 	path = libdatachannel/libdatachannel-sys/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel
+[submodule "libdatachannel/libdatachannel-sys/mbedtls"]
+	path = libdatachannel/libdatachannel-sys/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls.git
+	shallow = true

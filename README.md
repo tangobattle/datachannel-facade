@@ -11,7 +11,7 @@ Its two backends are workspace members beside it:
 
 * **`libdatachannel`** — the native backend: Rust bindings to
   [libdatachannel], with `libdatachannel-sys` under it vendoring the C++
-  library as a submodule. Clone with `--recursive`.
+  library and Mbed TLS as submodules. Clone with `--recursive`.
 * **`web-datachannel`** — the wasm backend: browser WebRTC, deliberately
   shaped like libdatachannel's Rust API. Usable on its own, but it exists
   to make the facade's switch thin.
