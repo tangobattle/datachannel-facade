@@ -4,13 +4,37 @@ description = "Bindings to libdatachannel's C API"
 version = "0.24.3"
 edition = "2021"
 license = "MPL-2.0"
-exclude = ["libdatachannel/examples", "libdatachannel/deps/*/fuzzer", "libdatachannel/deps/*/test", "libdatachannel/deps/*/tests", "libdatachannel/deps/json"]
+exclude = [
+    "libdatachannel/examples",
+    "libdatachannel/deps/*/fuzzer",
+    "libdatachannel/deps/*/test",
+    "libdatachannel/deps/*/tests",
+    "libdatachannel/deps/json",
+    "mbedtls/.github",
+    "mbedtls/ChangeLog.d",
+    "mbedtls/configs",
+    "mbedtls/docs",
+    "mbedtls/doxygen",
+    "mbedtls/programs",
+    "mbedtls/tests",
+    "mbedtls/visualc",
+    # Only used with GEN_FILES=ON, which build.rs turns off.
+    "mbedtls/scripts",
+    # framework/CMakeLists.txt is add_subdirectory'd and must stay, but
+    # everything under it only serves Mbed TLS' own test suite.
+    "mbedtls/framework/.github",
+    "mbedtls/framework/data_files",
+    "mbedtls/framework/docs",
+    "mbedtls/framework/history",
+    "mbedtls/framework/psasim",
+    "mbedtls/framework/scripts",
+    "mbedtls/framework/tests",
+]
 
 [features]
-vendored = ["dep:openssl-src"]
+vendored = []
 
 [build-dependencies]
 bindgen = "0.72"
 cmake = "0.1"
 cpp_build = "0.5"
-openssl-src = { version = "300", optional = true }
