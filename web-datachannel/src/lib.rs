@@ -478,7 +478,15 @@ impl DataChannel {
     }
 
     pub fn send(&self, buf: &[u8]) -> Result<(), Error> {
-        Ok(self.dc.send_with_u8_array(buf)?)
+        // Not `send_with_u8_array(buf)`: wasm-bindgen passes a `&[u8]`
+        // as a view on the module's own memory, and in a build with
+        // shared memory (threads — tango-lite-web with the DS games on)
+        // `RTCDataChannel.send` refuses shared views outright. Copying
+        // into a fresh JS-side buffer works on both kinds of memory,
+        // and a wire packet is small.
+        let copy = js_sys::Uint8Array::new_with_length(buf.len() as u32);
+        copy.copy_from(buf);
+        Ok(self.dc.send_with_array_buffer(&copy.buffer())?)
     }
 
     pub fn close(&self) -> Result<(), Error> {
